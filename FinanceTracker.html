@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>BMJ | Personal Finance Tracker (KSh)</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(145deg, #f0f5fb 0%, #e9eef4 100%);
+      padding: 2rem 1.5rem;
+      min-height: 100vh;
+    }
+
+    .tracker-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+    .brand h1 {
+      font-size: 1.9rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #1C2E4A, #2A4F6E);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      letter-spacing: -0.3px;
+    }
+    .brand i {
+      background: white;
+      padding: 8px 12px;
+      border-radius: 60px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+      color: #1e4663;
+      font-size: 0.85rem;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: white;
+      border-radius: 28px;
+      padding: 1.4rem 1.6rem;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.05);
+      transition: all 0.2s ease;
+    }
+    .card:hover {
+      transform: translateY(-3px);
+    }
+    .card-title {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+      color: #5b6e8c;
+      margin-bottom: 0.6rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-amount {
+      font-size: 2.3rem;
+      font-weight: 800;
+      color: #1e2f41;
+      line-height: 1.2;
+    }
+    .income-amount { color: #2b7a4b; }
+    .expense-amount { color: #c23b22; }
+    .balance-positive { color: #1f6e43; }
+    .balance-negative { color: #c23b22; }
+
+    .form-card, .starting-card {
+      background: white;
+      border-radius: 28px;
+      padding: 1.6rem 1.8rem;
+      margin-bottom: 1.8rem;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.04);
+    }
+    .form-title {
+      font-weight: 600;
+      font-size: 1.2rem;
+      margin-bottom: 1.2rem;
+      color: #1f3a4b;
+      border-left: 5px solid #2a7f6e;
+      padding-left: 14px;
+    }
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      align-items: flex-end;
+    }
+    .input-group {
+      flex: 1;
+      min-width: 140px;
+    }
+    .input-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #5a6e85;
+      margin-bottom: 5px;
+    }
+    .input-group input, .input-group select {
+      width: 100%;
+      padding: 12px 12px;
+      border-radius: 18px;
+      border: 1.5px solid #e2e8f0;
+      background: #fefefe;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .input-group input:focus, .input-group select:focus {
+      border-color: #2a7f6e;
+      box-shadow: 0 0 0 3px rgba(42,127,110,0.2);
+    }
+    .btn {
+      border: none;
+      background: #2a7f6e;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 40px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.2s;
+      font-size: 0.85rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #2c3e50;
+    }
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+    .btn-outline {
+      background: white;
+      border: 1.5px solid #2a7f6e;
+      color: #2a7f6e;
+    }
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: #eef2f8;
+      padding: 8px 20px;
+      border-radius: 60px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .filter-btn.active {
+      background: #1e4663;
+      color: white;
+    }
+    .transactions-section {
+      background: white;
+      border-radius: 28px;
+      padding: 1rem 0 0.5rem 0;
+      overflow-x: auto;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+    }
+    .transactions-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 560px;
+    }
+    .transactions-table th, .transactions-table td {
+      text-align: left;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid #edf2f7;
+    }
+    .transactions-table th {
+      background: #f8fafd;
+      font-weight: 600;
+      color: #2c3f5c;
+    }
+    .transaction-income { color: #2b7a4b; font-weight: 700; }
+    .transaction-expense { color: #c23b22; font-weight: 700; }
+    .action-icons i {
+      margin: 0 6px;
+      cursor: pointer;
+      font-size: 1.1rem;
+    }
+    .fa-edit { color: #4b6a8b; }
+    .fa-trash-alt { color: #bc5a4c; }
+    .chart-area {
+      margin-top: 1.8rem;
+      background: white;
+      border-radius: 28px;
+      padding: 1rem;
+    }
+    canvas { max-height: 280px; width: 100%; }
+    .small-note { font-size: 0.7rem; text-align: center; color: #7c8aa0; margin-top: 0.8rem; }
+    footer { text-align: center; margin-top: 2rem; font-size: 0.7rem; color: #7b8ba3; }
+    @media (max-width: 700px) {
+      body { padding: 1rem; }
+      .card-amount { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="tracker-container">
+  <div class="brand">
+    <h1><i class="fas fa-coins" style="color:#2a7f6e;"></i> BMJ | KSh Tracker</h1>
+    <i class="fas fa-database"> localStorage · Kenya Shillings</i>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid">
+    <div class="card">
+      <div class="card-title"><i class="fas fa-wallet"></i> Total Balance</div>
+      <div class="card-amount" id="balanceAmount">KSh 0.00</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fas fa-arrow-up"></i> Total Income</div>
+      <div class="card-amount income-amount" id="totalIncome">KSh 0.00</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><i class="fas fa-arrow-down"></i> Total Expenses</div>
+      <div class="card-amount expense-amount" id="totalExpense">KSh 0.00</div>
+    </div>
+  </div>
+
+  <!-- Starting Balance Card (input money you have) -->
+  <div class="starting-card">
+    <div class="form-title"><i class="fas fa-hand-holding-usd"></i> 💰 Input money you have (Starting Balance)</div>
+    <div class="form-row">
+      <div class="input-group" style="flex:2">
+        <label>Amount (KSh)</label>
+        <input type="number" id="startingAmountInput" step="0.01" min="0" placeholder="e.g., 50000">
+      </div>
+      <div class="input-group" style="flex:1">
+        <button id="setStartingBalanceBtn" class="btn btn-outline"><i class="fas fa-plus-circle"></i> Set as Initial Balance</button>
+      </div>
+      <div class="small-note" style="margin-top: 8px; flex-basis:100%;">* Adds an income transaction "Initial Balance" – you can edit/delete later.</div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Transaction Form -->
+  <div class="form-card">
+    <div class="form-title"><i class="fas fa-pen-alt"></i> <span id="formTitleText">Add Transaction</span></div>
+    <div class="form-row">
+      <div class="input-group" style="flex:2">
+        <label>Description</label>
+        <input type="text" id="descInput" placeholder="e.g., Groceries, Salary" autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label>Amount (KSh)</label>
+        <input type="number" id="amountInput" step="0.01" min="0.01" placeholder="0.00">
+      </div>
+      <div class="input-group">
+        <label>Type</label>
+        <select id="typeSelect">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Category</label>
+        <select id="categorySelect"></select>
+      </div>
+      <div class="input-group">
+        <label>Date</label>
+        <input type="date" id="dateInput">
+      </div>
+      <div class="input-group" style="flex:0.8">
+        <button id="actionBtn" class="btn"><i class="fas fa-plus-circle"></i> Add</button>
+        <button id="cancelEditBtn" class="btn btn-secondary" style="display:none; margin-left: 8px;"><i class="fas fa-times"></i> Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">📋 All</button>
+    <button class="filter-btn" data-filter="income">📈 Income</button>
+    <button class="filter-btn" data-filter="expense">📉 Expenses</button>
+  </div>
+
+  <!-- Transactions Table -->
+  <div class="transactions-section">
+    <table class="transactions-table">
+      <thead><tr><th>Description</th><th>Category</th><th>Date</th><th>Amount (KSh)</th><th>Actions</th></thead>
+      <tbody id="transactionsList"></tbody>
+    </table>
+  </div>
+
+  <!-- Expense Chart -->
+  <div class="chart-area">
+    <div style="font-weight: 600; margin-bottom: 10px;"><i class="fas fa-chart-pie"></i> Expenses by category</div>
+    <canvas id="expenseChart" width="400" height="200"></canvas>
+    <div class="small-note">* Based on all expense transactions (KSh)</div>
+  </div>
+  <footer>Data saved in your browser — starts empty. Use "Set as Initial Balance" to record money you already have.</footer>
+</div>
+
+<script>
+  // CATEGORIES
+  const CATEGORY_MAP = {
+    income: ["Salary", "Freelance", "Investment", "Gift", "Bonus", "Other Income", "Initial Balance"],
+    expense: ["Food", "Transport", "Shopping", "Bills", "Entertainment", "Health", "Education", "Other Expense"]
+  };
+
+  // DOM elements
+  const descInput = document.getElementById('descInput');
+  const amountInput = document.getElementById('amountInput');
+  const typeSelect = document.getElementById('typeSelect');
+  const categorySelect = document.getElementById('categorySelect');
+  const dateInput = document.getElementById('dateInput');
+  const actionBtn = document.getElementById('actionBtn');
+  const cancelEditBtn = document.getElementById('cancelEditBtn');
+  const formTitleSpan = document.getElementById('formTitleText');
+  const transactionsTbody = document.getElementById('transactionsList');
+  const balanceSpan = document.getElementById('balanceAmount');
+  const totalIncomeSpan = document.getElementById('totalIncome');
+  const totalExpenseSpan = document.getElementById('totalExpense');
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const setStartingBtn = document.getElementById('setStartingBalanceBtn');
+  const startingAmountInput = document.getElementById('startingAmountInput');
+
+  let transactions = [];
+  let editingId = null;
+  let activeFilter = 'all';
+  let expenseChart = null;
+
+  // Format as KSh
+  function formatKSh(value) {
+    return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES', minimumFractionDigits: 2 }).format(value);
+  }
+
+  function populateCategoryDropdown(transactionType, selectedCategory = null) {
+    const categories = CATEGORY_MAP[transactionType] || CATEGORY_MAP.expense;
+    categorySelect.innerHTML = '';
+    categories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+    if (selectedCategory && categories.includes(selectedCategory)) {
+      categorySelect.value = selectedCategory;
+    } else {
+      categorySelect.value = categories[0];
+    }
+  }
+
+  function setDefaultDate() {
+    if (!dateInput.value) {
+      dateInput.value = new Date().toISOString().slice(0,10);
+    }
+  }
+
+  function resetFormFields() {
+    descInput.value = '';
+    amountInput.value = '';
+    typeSelect.value = 'expense';
+    populateCategoryDropdown('expense');
+    setDefaultDate();
+    editingId = null;
+    formTitleSpan.innerText = 'Add Transaction';
+    actionBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Add';
+    cancelEditBtn.style.display = 'none';
+    onTypeChange();
+  }
+
+  function onTypeChange() {
+    const currentType = typeSelect.value;
+    let currentCat = categorySelect.value;
+    const categoriesForType = CATEGORY_MAP[currentType];
+    if (!categoriesForType.includes(currentCat)) {
+      currentCat = categoriesForType[0];
+    }
+    populateCategoryDropdown(currentType, currentCat);
+  }
+
+  function saveToLocalStorage() {
+    localStorage.setItem('pesaflow_tracker', JSON.stringify(transactions));
+  }
+
+  // Start with EMPTY storage — no demo data
+  function loadTransactions() {
+    const stored = localStorage.getItem('pesaflow_tracker');
+    if (stored) {
+      transactions = JSON.parse(stored);
+    } else {
+      // Fresh start: empty array
+      transactions = [];
+      saveToLocalStorage();
+    }
+  }
+
+  function calculateTotals() {
+    let totalInc = 0, totalExp = 0;
+    transactions.forEach(t => {
+      if (t.type === 'income') totalInc += t.amount;
+      else totalExp += t.amount;
+    });
+    return { totalInc, totalExp, balance: totalInc - totalExp };
+  }
+
+  function updateSummaryUI() {
+    const { totalInc, totalExp, balance } = calculateTotals();
+    totalIncomeSpan.innerText = formatKSh(totalInc);
+    totalExpenseSpan.innerText = formatKSh(totalExp);
+    balanceSpan.innerText = formatKSh(balance);
+    if (balance >= 0) {
+      balanceSpan.classList.add('balance-positive');
+      balanceSpan.classList.remove('balance-negative');
+    } else {
+      balanceSpan.classList.add('balance-negative');
+      balanceSpan.classList.remove('balance-positive');
+    }
+  }
+
+  function updateExpenseChart() {
+    const expensesOnly = transactions.filter(t => t.type === 'expense');
+    const categoryMap = new Map();
+    expensesOnly.forEach(exp => {
+      const cat = exp.category;
+      const amt = exp.amount;
+      categoryMap.set(cat, (categoryMap.get(cat) || 0) + amt);
+    });
+    const labels = Array.from(categoryMap.keys());
+    const dataValues = Array.from(categoryMap.values());
+    const ctx = document.getElementById('expenseChart').getContext('2d');
+    if (expenseChart) expenseChart.destroy();
+    if (labels.length === 0) {
+      expenseChart = new Chart(ctx, {
+        type: 'pie',
+        data: { labels: ['No expenses'], datasets: [{ data: [1], backgroundColor: ['#d9e2ec'] }] },
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
+      });
+    } else {
+      expenseChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: ['#2A7F6E', '#F4A261', '#E76F51', '#6C9EBF', '#8ECAE6', '#E9C46A', '#9C89B8', '#F28482'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { position: 'bottom', labels: { font: { size: 11 } } },
+            tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${formatKSh(ctx.raw)}` } }
+          }
+        }
+      });
+    }
+  }
+
+  function renderTransactionsList() {
+    let filtered = [...transactions];
+    if (activeFilter === 'income') filtered = filtered.filter(t => t.type === 'income');
+    if (activeFilter === 'expense') filtered = filtered.filter(t => t.type === 'expense');
+    filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+    if (filtered.length === 0) {
+      transactionsTbody.innerHTML = `<tr class="empty-row"><td colspan="5">✨ No transactions yet. Add income or use "Starting Balance". ✨</td></tr>`;
+      return;
+    }
+    let html = '';
+    filtered.forEach(t => {
+      const amountClass = t.type === 'income' ? 'transaction-income' : 'transaction-expense';
+      const sign = t.type === 'income' ? '+' : '-';
+      html += `
+        <tr>
+          <td><i class="fas ${t.type === 'income' ? 'fa-arrow-up' : 'fa-arrow-down'}" style="margin-right: 8px; opacity:0.7;"></i> ${escapeHtml(t.desc)}</td>
+          <td>${escapeHtml(t.category)}</td>
+          <td>${t.date}</td>
+          <td class="${amountClass}">${sign} ${formatKSh(t.amount)}</td>
+          <td class="action-icons">
+            <i class="fas fa-edit" data-id="${t.id}" data-action="edit"></i>
+            <i class="fas fa-trash-alt" data-id="${t.id}" data-action="delete"></i>
+          </td>
+        </tr>
+      `;
+    });
+    transactionsTbody.innerHTML = html;
+    document.querySelectorAll('[data-action="edit"]').forEach(icon => {
+      icon.addEventListener('click', (e) => {
+        const id = parseInt(icon.getAttribute('data-id'));
+        startEditTransaction(id);
+      });
+    });
+    document.querySelectorAll('[data-action="delete"]').forEach(icon => {
+      icon.addEventListener('click', (e) => {
+        const id = parseInt(icon.getAttribute('data-id'));
+        deleteTransactionById(id);
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    if(!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if(m === '&') return '&amp;';
+      if(m === '<') return '&lt;';
+      if(m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  function deleteTransactionById(id) {
+    if (confirm('Delete this transaction permanently?')) {
+      transactions = transactions.filter(t => t.id !== id);
+      saveToLocalStorage();
+      if (editingId === id) resetFormFields();
+      refreshAllUI();
+    }
+  }
+
+  function startEditTransaction(id) {
+    const transaction = transactions.find(t => t.id === id);
+    if (!transaction) return;
+    editingId = transaction.id;
+    descInput.value = transaction.desc;
+    amountInput.value = transaction.amount;
+    typeSelect.value = transaction.type;
+    populateCategoryDropdown(transaction.type, transaction.category);
+    dateInput.value = transaction.date;
+    formTitleSpan.innerText = '✏️ Edit Transaction';
+    actionBtn.innerHTML = '<i class="fas fa-save"></i> Update';
+    cancelEditBtn.style.display = 'inline-flex';
+    document.querySelector('.form-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function handleSubmit() {
+    const description = descInput.value.trim();
+    if (!description) { alert('Please enter a description'); return; }
+    let amount = parseFloat(amountInput.value);
+    if (isNaN(amount) || amount <= 0) { alert('Amount must be a positive number'); return; }
+    const transactionType = typeSelect.value;
+    const category = categorySelect.value;
+    let transactionDate = dateInput.value || new Date().toISOString().slice(0,10);
+    if (editingId !== null) {
+      const index = transactions.findIndex(t => t.id === editingId);
+      if (index !== -1) {
+        transactions[index] = { ...transactions[index], desc: description, amount: amount, type: transactionType, category: category, date: transactionDate };
+      }
+      editingId = null;
+    } else {
+      const newId = Date.now() + Math.floor(Math.random() * 10000);
+      transactions.push({ id: newId, desc: description, amount: amount, type: transactionType, category: category, date: transactionDate });
+    }
+    saveToLocalStorage();
+    resetFormFields();
+    setActiveFilter('all');
+    refreshAllUI();
+  }
+
+  function cancelEdit() {
+    resetFormFields();
+    editingId = null;
+    refreshAllUI();
+  }
+
+  function setActiveFilter(filter) {
+    activeFilter = filter;
+    filterBtns.forEach(btn => {
+      if (btn.getAttribute('data-filter') === filter) btn.classList.add('active');
+      else btn.classList.remove('active');
+    });
+    renderTransactionsList();
+  }
+
+  function refreshAllUI() {
+    updateSummaryUI();
+    renderTransactionsList();
+    updateExpenseChart();
+  }
+
+  // Starting balance handler: adds an income transaction with category "Initial Balance"
+  function setStartingBalance() {
+    let amount = parseFloat(startingAmountInput.value);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid positive amount in KSh (e.g., 25000)');
+      return;
+    }
+    const newId = Date.now() + Math.floor(Math.random() * 10000);
+    const today = new Date().toISOString().slice(0,10);
+    transactions.push({
+      id: newId,
+      desc: "Initial Balance (money I have)",
+      amount: amount,
+      type: "income",
+      category: "Initial Balance",
+      date: today
+    });
+    saveToLocalStorage();
+    startingAmountInput.value = '';
+    refreshAllUI();
+    setActiveFilter('all');
+    alert(`Added KSh ${amount.toFixed(2)} as your starting balance. You can edit/delete it anytime.`);
+  }
+
+  function initEventListeners() {
+    actionBtn.addEventListener('click', handleSubmit);
+    cancelEditBtn.addEventListener('click', cancelEdit);
+    typeSelect.addEventListener('change', onTypeChange);
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => setActiveFilter(btn.getAttribute('data-filter')));
+    });
+    setStartingBtn.addEventListener('click', setStartingBalance);
+  }
+
+  function init() {
+    loadTransactions();   // loads empty array if first time
+    setDefaultDate();
+    populateCategoryDropdown('expense');
+    initEventListeners();
+    onTypeChange();
+    refreshAllUI();
+    setActiveFilter('all');
+  }
+
+  init();
+</script>
+</body>
+</html>
